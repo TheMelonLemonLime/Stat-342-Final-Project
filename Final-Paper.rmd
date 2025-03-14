@@ -1,0 +1,190 @@
+---
+title: "A Critical Approach to Evaluating the Efficacy of the J&J BNT162b2 Vaccine (COVID)"
+author: "Arnav, Maxx, Mohit"
+date: '03-18-25'
+output: pdf_document
+urlcolor: blue
+header-includes:
+- \usepackage{amsmath,amsfonts,amssymb}
+- \usepackage{setspace} \doublespacing
+fontsize: 11pt
+---
+  
+```{r setup, include=FALSE}
+#Use this code chunk to include libraries, and set global options.
+```
+
+# Abstract
+Write your abstract here.
+
+# Keywords
+*Keyword 1*, *Keyword 2*, *Keyword 3*, *Keyword 4*
+  
+  \newpage
+
+# Introduction / Background
+Provide an introduction with background information.
+
+```{r label="important_R_code", eval=TRUE, echo=FALSE}
+# You can reference your code in the appendix (sample here).
+```
+
+# Statistical Methods
+
+## Model
+Describe the statistical model used.
+
+$T$ is the random variable that defines the number of people who had the vaccine out of the people who tested positive of a total $n = 170$ cases.
+
+\begin{align*}
+    T &\sim Binom(n = 170, \pi) \\
+    \pi &= P(\text{Vaccinated} | \text{Positive Covid Test}) \\
+    \pi &= \frac{n_1 \pi_v}{n_1 \pi_v + n_2 \pi_p}, \text{Where $n_1 \approx n_2$, the randomization is $1:1$} \\
+    \pi_v &= P( \text{Testing positive } | \text{Having vaccine }) \\
+    \pi_p &= P( \text{Testing positive } | \text{Having placebo }) \\
+    \pi &\frac{\pi_v}{\pi_v + pi_p} \\
+    \psi &= 1 - \frac{\pi_v}{\pi_p} \\
+    \psi &= \frac{1 - 2\pi}{1 - \pi} \\
+    \pi &= \frac{1 - \psi}{2 - \psi}
+\end{align*}
+
+Our parameter of interest is $\psi = \frac{1-2\pi}{1-\pi}$. We are interested in the interval estimate of $\psi$, our $H_0: \psi = 0.3$ and our $H_1: \psi \neq 0.3$. We took two different approaches for analysis, which was Likelihood and Bayesian.
+
+## Likelihood Inference
+
+Maximum likelihood estimators (MLE) are invariant to transformation so we find the MLE for $\pi_0^{MLE}$ and then easily transform it to $\psi_0^{MLE}$
+
+\begin{align*}
+    T &\sim Binom(170, \pi_0) \leftrightarrow T_1, T_2, \dots, T_{170} \sim Bernouli(\pi_0) \\
+    \hat\pi_0^{MLE} &= \frac{T}{n} \\
+    \hat\psi_0^{MLE} &= \frac{1 - 2\pi_0}{1-\pi_0} = \frac{n-2T}{n-T} 
+\end{align*}
+
+Standard errors and significance tests are not invariant to transformations, which means the likelihood function will be written in terms of $\psi$
+
+\begin{align*}
+    g(\psi) &= \frac{1-\psi}{2-\psi} \\
+    L^*(\psi) &= L(g(\psi)) = (^n_t) (\frac{1-\psi}{2-\psi})^t (1 - \frac{1-\psi}{2-\psi})^{n-t} \\
+    \ell^*(\psi) &= log(L^*(\psi)) = log(^n_t) + t \cdot log(\frac{1-\psi}{2-\psi}) + (n-t)log(1 - \frac{1-\psi}{2-\psi}) \\
+    \frac{d}{d\psi}\ell^*(\psi) &= \frac{n-t}{2-\psi} - \frac{t}{(1-\psi)(2-\psi)} \\
+    0 &= \frac{n-t}{2-\psi} - \frac{t}{(1-\psi)(2-\psi)}, \text{For MLE condition}
+\end{align*}
+
+From there, we would need to do the second derivative test to make sure our value is a maximum:
+
+$$\frac{d^2}{d\psi^2} \ell^* (\psi) = \frac{n-t}{(2-\psi)^2} + \frac{t(2\psi - 3)}{((1-\psi)(2-\psi))^2}$$
+
+A large sample MLE is approximately normally distrubuted:
+
+\begin{align*}
+    \hat\psi_0^{MLE} &\approx Norm(\psi_0, \sqrt{\frac{1}{n I(\psi_0)}}) \\
+    I(\psi_0) &= E [ \frac{-d^2}{d\psi_0^2} log(f_{\psi_0}(T))] \\
+    f_{\psi_0}(T) &= (^n_t) \pi^t (1-\pi)^{n-t} \\
+    f_{\psi_0}(T) &= (^n_t) (\frac{1-\psi}{2-\psi})^t (1-\frac{1-\psi}{2-\psi})^{n-t} = L^*(\psi) \\
+    log(f_{\psi_0}(T)) &= \ell^*(\psi) \\
+    I(\psi_0) &= E[-(\frac{n-t}{(2-\psi)^2} + \frac{t(2\psi - 3)}{((1-\psi)(2-\psi))^2})] \\
+    CI_{\alpha=0.05}(\hat\psi_0^{MLE}) &= \hat\psi_0^{MLE} \pm Z_{\alpha /} \cdot \sqrt{\frac{1}{n I(\psi_0)}}
+\end{align*}
+
+## Bayesian Inference
+Detail the Bayesian approach.
+
+# Results
+
+## Likelihood
+
+When we solved our equation for the MLE condition, our value for $\hat\psi_0^{MLE}$ was 0.9506. When we plugged it into our second derivative test, we got a value of -3123.83, which means our value is a global maximum. For finding the stardard error, we do:
+
+\begin{align*}
+  I(\psi_0) &= E [ \frac{-d^2}{d\psi_0^2} log(f_{\psi_0}(T))] \\
+  I(0.9506) &= 3123.8335 \\
+  \sqrt{\frac{1}{nI(\psi_0)}} &= 0.00137 \\
+  CI_{\alpha=0.05}(\hat\psi_0^{MLE}) &= 0.9506 \pm 1.96 \cdot 0.00137 \\
+  CI_{\alpha=0.05}(\hat\psi_0^{MLE}) &= [0.9479, 0.9533]
+\end{align*}
+
+```{r, warning=FALSE, echo=FALSE}
+library(fastR2)
+loglikelihood <- function(psi){
+  n <- 170
+  t <- 8
+  return(log(choose(n, t)) + t * log((1 - psi) / (2 - psi)) + (n - t) * log(1 - (1 - psi) / (2 - psi)))
+}
+
+ml.psi <- maxLik2(loglik = loglikelihood, start=0.3)
+plot(ml.psi) + labs(title = "Taylor Approximation Plot")
+```
+
+```{r, echo=FALSE}
+set.seed(123)
+
+n <- 170
+psi_mle <- 0.9506
+pi_hat <- (1 - psi_mle) / (2 - psi_mle)
+
+n_bootstrap <- 10000
+
+T_bootstrap <- rbinom(n_bootstrap, size = n, prob = pi_hat)
+
+psi_bootstrap <- (n - 2 * T_bootstrap ) / (n - T_bootstrap)
+
+ci_boot <- quantile(psi_bootstrap, probs = c(0.025, 0.975))
+
+boot_lower <- unname(ci_boot[1])
+boot_upper <- unname(ci_boot[2])
+```
+
+Using the bootstrap technique, we found a 95% confidence interval of $[$`r boot_lower`, `r boot_upper`$]$
+
+
+# Discussion / Conclusion
+Discuss / conclude here.
+
+# Bibliography
+
+Brown, B. (2024). *Lecture Title*. Lecture slides, Course Name, University Name.
+
+Doe, J. (2020). Title of the Paper. *Journal Name*, 12(3), 45-67.
+
+Last, F., & Last, F. (2025). *Book Title*. Publisher.
+
+Smith, A., & Johnson, C. (2023). *Title of the Online Article*. Retrieved from https://www.example.com.
+
+# Appendix
+
+## Code
+```{r ref.label = "important_R_code", eval=FALSE}
+```
+
+```{r ref.label = "Taylor Plot", eval=FALSE}
+library(fastR2)
+loglikelihood <- function(psi){
+  n <- 170
+  t <- 8
+  return(log(choose(n, t)) + t * log((1 - psi) / (2 - psi)) + (n - t) * log(1 - (1 - psi) / (2 - psi)))
+}
+
+ml.psi <- maxLik2(loglik = loglikelihood, start=0.3)
+plot(ml.psi) + labs(title = "Taylor Approximation Plot")
+```
+
+```{r, ref.label='Bootstrap', eval=FALSE}
+set.seed(123)
+
+n <- 170
+psi_mle <- 0.9506
+pi_hat <- (1 - psi_mle) / (2 - psi_mle)
+
+n_bootstrap <- 10000
+
+T_bootstrap <- rbinom(n_bootstrap, size = n, prob = pi_hat)
+
+psi_bootstrap <- (n - 2 * T_bootstrap ) / (n - T_bootstrap)
+
+ci_boot <- quantile(psi_bootstrap, probs = c(0.025, 0.975))
+
+print(ci_boot)
+```
+
+## Proofs
+If applicable, include detailed mathematical derivations or additional theoretical explanations.

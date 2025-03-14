@@ -69,8 +69,8 @@ Detail the likelihood approach.
     \hat\psi_0^{MLE} &= \frac{1 - 2\pi_0}{1-\pi_0} = \frac{n-2T}{n-T} = \frac{170 - 2(8)}{170-8} \approx 0.9506
 \end{align*}
 
-Standard errors and significance tests are not invariant to transformations, which means the likelihood function will be written in terms of $\psi$
 
+Standard errors and significance tests are not invariant to transformations, which means the likelihood function will be written in terms of $\psi$
 
 \begin{align*}
     g(\psi) &= \frac{1-\psi}{2-\psi} \\
@@ -85,11 +85,142 @@ Standard errors and significance tests are not invariant to transformations, whi
     &\text{Thus function concave downwards, meaning global maximum} \\
     \hat\psi_0^{MLE} &\approx Norm(\psi_0, \sqrt{\frac{1}{n I(\psi_0)}}) \\
     I(\psi_0) &= E [ \frac{-d^2}{d\psi_0^2} log(f_{\psi_0}(T))] \\
-    f_{\psi_0}(T) &= (^n_t) \pi^t (1-\pi)^{n-t}
+    f_{\psi_0}(T) &= (^n_t) \pi^t (1-\pi)^{n-t} \\
+    f_{\psi_0}(T) &= (^n_t) (\frac{1-\psi}{2-\psi})^t (1-\frac{1-\psi}{2-\psi})^{n-t} = L^*(\psi) \\
+    log(f_{\psi_0}(T)) &= \ell^*(\psi) \\
+    I(\psi_0) &= E[-(\frac{n-t}{(2-\psi)^2} + \frac{t(2\psi - 3)}{((1-\psi)(2-\psi))^2})] \\
+    I(\psi_0 = 0.9506) &= 3123.8335, \text{plugging in our known values}\\
+    \sqrt{\frac{1}{nI(\psi_0)}} &= 0.00137 \\
+    CI_{\alpha=0.05}(\hat\psi_0^{MLE}) &= 0.9506 \pm 1.96 \cdot 0.00137 \\
+    CI_{\alpha=0.05}(\hat\psi_0^{MLE}) &= [0.9479, 0.9533]
 \end{align*}
+
+Using likelihood inference, we are 95 percent confident the true value of $\psi_0$ is in the interval: $[0.9479, 0.9533]$
+
+
+### Taylor Plot
+
+```{r, warning=FALSE}
+library(fastR2)
+loglikelihood <- function(psi){
+  n <- 170
+  t <- 8
+  return(log(choose(n, t)) + t * log((1 - psi) / (2 - psi)) + (n - t) * log(1 - (1 - psi) / (2 - psi)))
+}
+
+ml.psi <- maxLik2(loglik = loglikelihood, start=0.3)
+plot(ml.psi) + labs(title = "Taylor Approximation Plot")
+```
+
+
+### Bootstrap Confidence Interval
+
+```{r}
+set.seed(123)
+
+n <- 170
+psi_mle <- 0.9506
+pi_hat <- (1 - psi_mle) / (2 - psi_mle)
+
+n_bootstrap <- 10000
+
+T_bootstrap <- rbinom(n_bootstrap, size = n, prob = pi_hat)
+
+psi_bootstrap <- (n - 2 * T_bootstrap ) / (n - T_bootstrap)
+
+ci_boot <- quantile(psi_bootstrap, probs = c(0.025, 0.975))
+
+print(ci_boot)
+```
+
+\begin{align*}
+    H_0&: \psi_0 = 0.3 \\
+    H_1&: \psi_0 \neq 0.3 \\
+    w &= 2log(\Lambda) \\
+    \Lambda &= \frac{L(\hat\psi_0^{MLE})}{L(\psi_{null})} \\
+    w &= 121.72
+\end{align*}
+
+```{r}
+p_value <- pchisq(121.72, df=1, lower.tail=FALSE)
+```
+
+Our p-value is: `r p_value`, which is significantly lower than our significance value of $\alpha = 0.05$, so as a result we reject the null as there is convincing evidence that the true value for $\psi \neq 0.3$, which means that the efficacy of the vaccine is different than the FDA requirement of 30 percent
+
+```{r}
+set.seed(414)
+psinull <- 0.3
+B <- 10000
+n <- 15
+
+sim_func <- function(i){
+  xstar <- rweibull( n = 15, shape = 2, scale = 1/sqrt(psinull * pi))
+  
+  psihatstar <- n / (pi * sum(xstar^2))
+  wstar <- 2 * (loglikelihood(psihatstar) - loglikelihood(psinull))
+  return(wstar)
+}
+
+null_sim <- lapply(1:B, sim_func)
+
+Wstar <- c(unlist(null_sim))
+emp_value <- sum(Wstar >= 121.72) / B
+print(emp_value)
+```
 
 ## Bayesian Inference
 Detail the Bayesian approach.
+
+```{r}
+set.seed(123)
+
+samples <- 10000
+a <- 8 + 43.03
+b <- 170 - 8 + 43.03
+
+library(tidyverse)
+
+ggplot() +
+  geom_function(fun = dbeta, 
+                mapping = aes(color = 'Prior'),
+                args = list(shape1 = 43.03, shape = 43.03),
+                xlim = c(0, 1))+
+  geom_function(fun = dbeta,
+                mapping = aes(color = 'Posterior'),
+                args = list(shape1 = a, shape2 = b),
+                xlim = c(0, 1)) +
+  scale_color_manual(name = 'dist', values = c('blue', 'red'))
+
+pi_median <- qbeta(0.5, a, b)
+print(pi_median)
+pi_ci <- qbeta(p = c(0.025, 0.975), a, b)
+
+psi_median <- (1 - 2 * pi_median) / (1 - pi_median)
+
+library(HDInterval)
+hd_pi_ci <- hdi(qbeta, credMass=0.95, shape1 = a, shape2 = b)
+pi_lower <- unname(hd_pi_ci[1])
+pi_upper <- unname(hd_pi_ci[2])
+psi_upper <- (1 - 2 * pi_lower) / (1 - pi_lower)
+psi_lower <- (1 - 2 * pi_upper) / (1 - pi_upper)
+psi_lower
+psi_upper
+```
+
+\begin{align*}
+    P(\frac{1-\psi}{2-\psi} < 0.1985|t ) &= 0.5 \\
+    P(1-\psi < 0.1985(2-\psi)|t) &= 0.5\\
+    P(\psi > 0.7523 | t) &= 0.5
+\end{align*}
+
+Therefore the posterior median of $\psi$ is 0.7523
+
+```{r}
+psi_median_p_value <- 2 * pbeta(0.7523, a, b, lower.tail = FALSE) # for symmetrical two sided test
+```
+
+Our p-value for $\psi$ is less than 0.05 from our bayesian inference, therefore we have convincing evidence that the true value for the efficacy of the vaccine is different than the 30 percent FDA requirement. Our 95% confidence interval for $\psi$ does not contain 0.3 and only has values larger, which provides evidence that this vaccine exceeds the FDA efficacy requirement
+
 
 # Results
 Present your findings. 
