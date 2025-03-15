@@ -25,14 +25,10 @@ Write your abstract here.
 # Introduction / Background
 Provide an introduction with background information.
 
-```{r label="important_R_code", eval=TRUE, echo=FALSE}
-# You can reference your code in the appendix (sample here).
-```
 
 # Statistical Methods
 
 ## Model
-Describe the statistical model used.
 
 $T$ is the random variable that defines the number of people who had the vaccine out of the people who tested positive of a total $n = 170$ cases.
 
@@ -86,14 +82,22 @@ A large sample MLE is approximately normally distrubuted:
     CI_{\alpha=0.05}(\hat\psi_0^{MLE}) &= \hat\psi_0^{MLE} \pm Z_{\alpha /} \cdot \sqrt{\frac{1}{n I(\psi_0)}}
 \end{align*}
 
+\begin{align*}
+    H_0&: \psi_0 = 0.3 \\
+    H_1&: \psi_0 \neq 0.3 \\
+    w &= 2log(\Lambda) \\
+    \Lambda &= \frac{L(\hat\psi_0^{MLE})}{L(\psi_{null})}
+\end{align*}
+
 ## Bayesian Inference
-Detail the Bayesian approach.
+
+For the bayesian inference, we first started by defining our prior probability of efficacy ($\psi$), which we chose overly pessimistic probabilities for our prior which means if we still get strong results, our evidence will be very compelling. Then we translate the prior probability to be in terms of $\pi$, then we find the posterior and retranslate it back to $\psi$. This allows us to find the confidence interval for $\pi$ and $\psi$ as well as the posterior probabilities for $\psi$, which would give us evidence on the vaccine efficacy rate and whether it meets the FDA requirements for efficacy.
 
 # Results
 
 ## Likelihood
 
-When we solved our equation for the MLE condition, our value for $\hat\psi_0^{MLE}$ was 0.9506. When we plugged it into our second derivative test, we got a value of -3123.83, which means our value is a global maximum. For finding the stardard error, we do:
+When we solved our equation for the MLE condition, our value for $\hat\psi_0^{MLE}$ was 0.9506. When we plugged it into our second derivative test, we got a value of -3123.83, which means the function is concave downwards at that point, so our value is a global maximum. For finding the stardard error, we do:
 
 \begin{align*}
   I(\psi_0) &= E [ \frac{-d^2}{d\psi_0^2} log(f_{\psi_0}(T))] \\
@@ -103,7 +107,7 @@ When we solved our equation for the MLE condition, our value for $\hat\psi_0^{ML
   CI_{\alpha=0.05}(\hat\psi_0^{MLE}) &= [0.9479, 0.9533]
 \end{align*}
 
-```{r, warning=FALSE, echo=FALSE}
+```{r label='Taylor Plot', warning=FALSE, echo=FALSE, message=FALSE}
 library(fastR2)
 loglikelihood <- function(psi){
   n <- 170
@@ -115,7 +119,7 @@ ml.psi <- maxLik2(loglik = loglikelihood, start=0.3)
 plot(ml.psi) + labs(title = "Taylor Approximation Plot")
 ```
 
-```{r, echo=FALSE}
+```{r label='Bootstrap', echo=FALSE}
 set.seed(123)
 
 n <- 170
@@ -134,11 +138,89 @@ boot_lower <- unname(ci_boot[1])
 boot_upper <- unname(ci_boot[2])
 ```
 
-Using the bootstrap technique, we found a 95% confidence interval of $[$`r boot_lower`, `r boot_upper`$]$
+We also conducted a bootstrap estimate using random binomial samples for $\pi$ and converting to it $\psi$. Using this technique, we found a 95% confidence interval of [`r boot_lower`, `r boot_upper`].
 
+Our $w$ statistic we calculated was 121.72, which has a p-value of `r pchisq(121.72, df=1, lower.tail=FALSE)`.
+
+## Bayesian
+
+For the bayesian approach, we decided on a prior distribution of $Beta(43.03, 43.03)$. Which was decided on the probabilities:
+
+\begin{align*}
+  P(\psi > 0) &= 0.5 \\
+  P(\psi > 0.3) &= 0.05
+\end{align*}
+
+From this we calculated our posterior distribution to be: $Beta(51.03, 205.03)$. These distributions are visualized below.
+
+```{r label='Prior-Posterior Plot', echo=FALSE, warning=FALSE, message=FALSE}
+a <- 8 + 43.03
+b <- 170 - 8 + 43.03
+
+library(tidyverse)
+
+ggplot() +
+  geom_function(fun = dbeta, 
+                mapping = aes(color = 'Prior'),
+                args = list(shape1 = 43.03, shape = 43.03),
+                xlim = c(0, 1))+
+  geom_function(fun = dbeta,
+                mapping = aes(color = 'Posterior'),
+                args = list(shape1 = a, shape2 = b),
+                xlim = c(0, 1)) +
+  scale_color_manual(name = 'dist', values = c('blue', 'red'))
+```
+
+```{r label='Bayesian Calculations', echo=FALSE, message=FALSE, warning=FALSE}
+pi_median <- qbeta(0.5, a, b)
+pi_ci <- qbeta(p = c(0.025, 0.975), a, b)
+
+psi_median <- (1 - 2 * pi_median) / (1 - pi_median)
+
+library(HDInterval)
+hd_pi_ci <- hdi(qbeta, credMass=0.95, shape1 = a, shape2 = b)
+pi_lower <- unname(hd_pi_ci[1])
+pi_upper <- unname(hd_pi_ci[2])
+psi_upper <- (1 - 2 * pi_lower) / (1 - pi_lower)
+psi_lower <- (1 - 2 * pi_upper) / (1 - pi_upper)
+psi_median_p_value <- 2 * pbeta(psi_median, a, b, lower.tail = FALSE)
+```
+
+Using our posterior distribution for $\pi$, we found the median and confidence interval for $\pi$ and translated it back to $\psi$. For the confidence interval we used the 95 percent highest posterior density interval. Our $\psi$ median was `r psi_median`, and the confidence interval was [`r psi_lower`, `r psi_upper`]. And our p-value for our $\psi$ median was `r psi_median_p_value`.
 
 # Discussion / Conclusion
-Discuss / conclude here.
+
+Using likelihood inference, we are 95 percent confident the true value of $\psi_0$ (Vaccine Efficacy) is in the interval: $[0.9479, 0.9533]$. 
+
+Using bootstrap, we are 95 percent confident that the true value for $\psi_0$ (Vaccine Efficacy) is in the interval: $[0.9103, 0.9820]$.
+
+Using Bayesian inference, we are 95 percent confident that the true value for $\psi_0$ (Vaccine Efficacy) is in the interval: $[0.6691, 0.8217]$.
+
+Our p-value for $\psi$ using likelihood inference is: $2.6783 \cdot 10^{-28}$, which is significantly lower than our significance value of $\alpha = 0.05$, so as a result we reject the null as there is convincing evidence that the true value for $\psi \neq 0.3$, which means that the efficacy of the vaccine is greater than the FDA requirement of 30 percent.
+
+Our two-sided p-value for $\psi$ using Bayesian inference is: $3.2447 \cdot 10^{-77}$, which is less than 0.05, therefore we have convincing evidence that the true value for the efficacy of the vaccine is different than the 30 percent FDA requirement.
+
+Although we get different p-values and confidence intervals for the different techniques, ultimately they all show we have enough evidence that the true efficacy of the vaccine, that being the vaccine makes you less likely to contract COVID, is greater than the FDA requirement of 30 percent. The likelihood inference was a lot more optimistic as our confidence interval was a lot higher, whereas the Bayesian inference was a lot more pessimistic as our confidence interval was lower. This is because our prior distribution in the Bayesian inference was very critical only giving a 5 percent chance of exceeding FDA guidelines.
+
+In comparison to the Pfizer study, their prior distribution of $\pi$ for Bayesian inference was $Beta(0.700102, 1)$ compared to our $Beta(43.03, 43.03)$:
+
+```{r label='Pfizer Comparison Graph', echo=FALSE}
+ggplot() +
+  geom_function(fun = dbeta, 
+                mapping = aes(color = 'Our Prior'),
+                args = list(shape1 = 43.03, shape = 43.03),
+                xlim = c(0, 1))+
+  geom_function(fun = dbeta,
+                mapping = aes(color = 'Pfizer Prior'),
+                args = list(shape1 = 0.700102, shape2 = 1),
+                xlim = c(0, 1)) +
+  scale_color_manual(name = 'dist', values = c('blue', 'red'))
+```
+
+Which as we can see gives $\pi$ a really high probability of being smaller, which increases the efficacy of the vaccine.
+
+In general, a strength of the frequentist approach is that it does not rely on a prior probability/distribution which means it soly relies on the data. As a result, everyone that uses the same data will get the same result. In contrast, the Bayesian approach allows for the prior probability/distribution, which can be beneficial if you have prior knowledge. It also allows for a more critical approach if data is very strong one direction. The downside to this, is humans can bias the prior distribution to better reach a conclusion they are looking for.
+
 
 # Bibliography
 
@@ -153,37 +235,30 @@ Smith, A., & Johnson, C. (2023). *Title of the Online Article*. Retrieved from h
 # Appendix
 
 ## Code
-```{r ref.label = "important_R_code", eval=FALSE}
-```
+
+### For Taylor Plot
 
 ```{r ref.label = "Taylor Plot", eval=FALSE}
-library(fastR2)
-loglikelihood <- function(psi){
-  n <- 170
-  t <- 8
-  return(log(choose(n, t)) + t * log((1 - psi) / (2 - psi)) + (n - t) * log(1 - (1 - psi) / (2 - psi)))
-}
-
-ml.psi <- maxLik2(loglik = loglikelihood, start=0.3)
-plot(ml.psi) + labs(title = "Taylor Approximation Plot")
 ```
 
-```{r, ref.label='Bootstrap', eval=FALSE}
-set.seed(123)
+### For Bootstrap
 
-n <- 170
-psi_mle <- 0.9506
-pi_hat <- (1 - psi_mle) / (2 - psi_mle)
+```{r ref.label='Bootstrap', eval=FALSE}
+```
 
-n_bootstrap <- 10000
+### For Prior-Posterior Plot
 
-T_bootstrap <- rbinom(n_bootstrap, size = n, prob = pi_hat)
+```{r ref.label='Prior-Posterior Plot', eval=FALSE}
+```
 
-psi_bootstrap <- (n - 2 * T_bootstrap ) / (n - T_bootstrap)
+### For Bayesian Calculations
 
-ci_boot <- quantile(psi_bootstrap, probs = c(0.025, 0.975))
+```{r ref.label='Bayesian Calculations', eval=FALSE}
+```
 
-print(ci_boot)
+### For Prior Comparison
+
+```{r ref.label='Pfizer Comparison Graph', eval=FALSE}
 ```
 
 ## Proofs
