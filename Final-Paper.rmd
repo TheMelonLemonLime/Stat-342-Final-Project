@@ -15,15 +15,41 @@ fontsize: 11pt
 ```
 
 # Abstract
-Write your abstract here.
+The effectiveness of the J&J BNT162b2 COVID-19 vaccine is evaluated using likelihood inference and Bayesian analysis to determine if it exceeds the FDA’s 30% efficacy threshold. Maximum likelihood estimation (MLE) provides a point estimate for vaccine efficacy, $\psi$, with confidence intervals computed using the Wald method and bootstrap resampling. The likelihood ratio test (LRT) assesses statistical significance. Bayesian inference, using a Beta-binomial model with informative and non-informative priors, derives credible posterior intervals. The MLE estimate for $\psi$ is 0.9506, with a 95% confidence interval [0.9479, 0.9533]. The LRT statistic $(121.72, p < 0.0001)$ confirms significance since the p-value is less than 0.05. Bayesian analysis with a Beta(43.03, 43.03) prior yields a posterior median of 0.7523. Both methods strongly support vaccine efficacy exceeding 30%, meaning the vaccine is more than enough to meet the FDA’s 30% requirement.
 
 # Keywords
-*Keyword 1*, *Keyword 2*, *Keyword 3*, *Keyword 4*
-  
+Vaccine Efficacy, Bayesian Inference, Bootstrap, Likelihood Ratio Test
+
   \newpage
 
 # Introduction / Background
-Provide an introduction with background information.
+
+The COVID-19 pandemic has had a profound impact on global health, resulting in millions of deaths and long-term health complications worldwide. Governments and health organizations have worked to mitigate the crisis through public health measures such as social distancing, mask mandates, and large-scale vaccination efforts. The rapid development and deployment of COVID-19 vaccines have been a critical step in controlling the pandemic by reducing infection rates, hospitalizations, and mortality. Among these vaccines, the J&J BNT162b2 vaccine has been widely administered, requiring rigorous evaluation to ensure its efficacy.
+Vaccine efficacy is a key metric in clinical trials, measuring the relative reduction in disease risk between vaccinated and unvaccinated individuals. The FDA mandates that a vaccine must demonstrate at least 30% efficacy to be considered effective for public use. The primary objective of this study is to determine whether the J&J vaccine meets or exceeds this threshold. Vaccine efficacy is measured as $\psi$, where: 
+$$\psi = 1 - \frac{\pi_a}{\pi_p}$$
+
+Where $\pi_a$ and $\pi_p$ represent the probabilities testing positive for COVID-19 in the vaccine and placebo groups, respectively. A common threshold used in clinical trials and FDA approval is $\psi > 0.3$, meaning that the vaccine should reduce the chance of contracting COVID-19 by at least 30% to be considered effective.
+
+The dataset contains 170 confirmed COVID-19 cases, with participants randomly assigned to either the vaccine or placebo group in a 1:1 ratio. To provide an initial summary of the data, the following bar plot visualizes the distribution of infections across both groups.
+
+```{r label = 'Data Visual', echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+data <- data.frame(
+  Group = c(rep("Vaccinated", 8), rep("Placebo", 162))
+)
+ggplot(data, aes(x = Group)) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Distribution of COVID-19 Cases",
+       x = "Group",
+       y = "Count") +
+  theme_minimal()
+```
+This visualization provides insight into the lower infection rate observed in the vaccinated group, supporting the hypothesis that the vaccine reduces COVID-19 risk. To formally evaluate the vaccine’s effectiveness, we test the following hypotheses:
+
+$H_0: \psi = 0.3$ 
+$H_1: \psi \neq 0.3$ 
+
+By applying both likelihood inference and Bayesian analysis, we aim to determine whether the J&J COVID-19 vaccine meets or surpasses the FDA's efficacy requirement, providing crucial insights into its real-world effectiveness.
 
 
 # Statistical Methods
@@ -114,26 +140,19 @@ loglikelihood <- function(psi){
   t <- 8
   return(log(choose(n, t)) + t * log((1 - psi) / (2 - psi)) + (n - t) * log(1 - (1 - psi) / (2 - psi)))
 }
-
 ml.psi <- maxLik2(loglik = loglikelihood, start=0.3)
 plot(ml.psi) + labs(title = "Taylor Approximation Plot")
 ```
 
 ```{r label='Bootstrap', echo=FALSE}
 set.seed(123)
-
 n <- 170
 psi_mle <- 0.9506
 pi_hat <- (1 - psi_mle) / (2 - psi_mle)
-
 n_bootstrap <- 10000
-
 T_bootstrap <- rbinom(n_bootstrap, size = n, prob = pi_hat)
-
 psi_bootstrap <- (n - 2 * T_bootstrap ) / (n - T_bootstrap)
-
 ci_boot <- quantile(psi_bootstrap, probs = c(0.025, 0.975))
-
 boot_lower <- unname(ci_boot[1])
 boot_upper <- unname(ci_boot[2])
 ```
@@ -156,9 +175,6 @@ From this we calculated our posterior distribution to be: $Beta(51.03, 205.03)$.
 ```{r label='Prior-Posterior Plot', echo=FALSE, warning=FALSE, message=FALSE}
 a <- 8 + 43.03
 b <- 170 - 8 + 43.03
-
-library(tidyverse)
-
 ggplot() +
   geom_function(fun = dbeta, 
                 mapping = aes(color = 'Prior'),
@@ -174,9 +190,7 @@ ggplot() +
 ```{r label='Bayesian Calculations', echo=FALSE, message=FALSE, warning=FALSE}
 pi_median <- qbeta(0.5, a, b)
 pi_ci <- qbeta(p = c(0.025, 0.975), a, b)
-
 psi_median <- (1 - 2 * pi_median) / (1 - pi_median)
-
 library(HDInterval)
 hd_pi_ci <- hdi(qbeta, credMass=0.95, shape1 = a, shape2 = b)
 pi_lower <- unname(hd_pi_ci[1])
@@ -224,17 +238,20 @@ In general, a strength of the frequentist approach is that it does not rely on a
 
 # Bibliography
 
-Brown, B. (2024). *Lecture Title*. Lecture slides, Course Name, University Name.
+Henao-Restrepo, Ana Maria, et al. "Efficacy and effectiveness of COVID-19 vaccines: a review of literature and ongoing clinical trials." *BMC Medical Research Methodology*, vol. 20, no. 1, 2020, p. 177. BioMed Central, https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-020-00968-2
 
-Doe, J. (2020). Title of the Paper. *Journal Name*, 12(3), 45-67.
+*Royal Statistical Society*. Journal. Series A: General, Volume 125, Issue 3, May 1962, Pages 321–352, https://doi.org/10.2307/2982406
 
-Last, F., & Last, F. (2025). *Book Title*. Publisher.
-
-Smith, A., & Johnson, C. (2023). *Title of the Online Article*. Retrieved from https://www.example.com.
+Tenny, Sarah, and Olivia Hoffman. "Likelihood Ratios." *StatPearls*, StatPearls Publishing, 2021, https://pmc.ncbi.nlm.nih.gov/articles/PMC7799296/.
 
 # Appendix
 
 ## Code
+
+### For Data Visual
+
+```{r, ref.label='Data Visual', eval=FALSE}
+```
 
 ### For Taylor Plot
 
@@ -261,5 +278,3 @@ Smith, A., & Johnson, C. (2023). *Title of the Online Article*. Retrieved from h
 ```{r ref.label='Pfizer Comparison Graph', eval=FALSE}
 ```
 
-## Proofs
-If applicable, include detailed mathematical derivations or additional theoretical explanations.
