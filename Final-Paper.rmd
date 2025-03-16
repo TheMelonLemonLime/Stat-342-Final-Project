@@ -15,7 +15,7 @@ fontsize: 11pt
 ```
 
 # Abstract
-The effectiveness of the J&J BNT162b2 COVID-19 vaccine is evaluated using likelihood inference and Bayesian analysis to determine if it exceeds the FDA’s 30% efficacy threshold. Maximum likelihood estimation (MLE) provides a point estimate for vaccine efficacy, $\psi$, with confidence intervals computed using the Wald method and bootstrap resampling. The likelihood ratio test (LRT) assesses statistical significance. Bayesian inference, using a Beta-binomial model with informative and non-informative priors, derives credible posterior intervals. The MLE estimate for $\psi$ is 0.9506, with a 95% confidence interval [0.9479, 0.9533]. The LRT statistic $(121.72, p < 0.0001)$ confirms significance since the p-value is less than 0.05. Bayesian analysis with a Beta(43.03, 43.03) prior yields a posterior median of 0.7523. Both methods strongly support vaccine efficacy exceeding 30%, meaning the vaccine is more than enough to meet the FDA’s 30% requirement.
+The effectiveness of the J&J BNT162b2 COVID-19 vaccine is evaluated using Frequentist (likelihood inference) and Bayesian analysis to determine if it exceeds the FDA’s 30% efficacy threshold. Maximum likelihood estimation (MLE) provides a point estimate for vaccine efficacy, $\psi$, with confidence intervals computed using the Wald method and bootstrap resampling. The likelihood ratio test (LRT) assesses statistical significance. Bayesian inference, using a Beta-binomial model with informative and non-informative priors, derives credible posterior intervals. The MLE estimate for $\psi$ is 0.9506, with a 95% confidence interval [0.9479, 0.9533]. The LRT statistic $(121.72, p < 0.0001)$ confirms significance since the p-value is less than 0.05. Bayesian analysis with a Beta(43.03, 43.03) prior yields a posterior median of 0.7523. Both methods strongly support vaccine efficacy exceeding 30%, meaning the vaccine is more than enough to meet the FDA’s 30% requirement.
 
 # Keywords
 Vaccine Efficacy, Bayesian Inference, Bootstrap, Likelihood Ratio Test
@@ -28,7 +28,7 @@ The COVID-19 pandemic has had a profound impact on global health, resulting in m
 Vaccine efficacy is a key metric in clinical trials, measuring the relative reduction in disease risk between vaccinated and unvaccinated individuals. The FDA mandates that a vaccine must demonstrate at least 30% efficacy to be considered effective for public use. The primary objective of this study is to determine whether the J&J vaccine meets or exceeds this threshold. Vaccine efficacy is measured as $\psi$, where: 
 $$\psi = 1 - \frac{\pi_a}{\pi_p}$$
 
-Where $\pi_a$ and $\pi_p$ represent the probabilities testing positive for COVID-19 in the vaccine and placebo groups, respectively. A common threshold used in clinical trials and FDA approval is $\psi > 0.3$, meaning that the vaccine should reduce the chance of contracting COVID-19 by at least 30% to be considered effective.
+Where $\pi_v$ and $\pi_p$ represent the probabilities testing positive for COVID-19 in the vaccine and placebo groups, respectively. A common threshold used in clinical trials and FDA approval is $\psi > 0.3$, meaning that the vaccine should reduce the chance of contracting COVID-19 by at least 30% to be considered effective.
 
 The dataset contains 170 confirmed COVID-19 cases, with participants randomly assigned to either the vaccine or placebo group in a 1:1 ratio. To provide an initial summary of the data, the following bar plot visualizes the distribution of infections across both groups.
 
@@ -138,7 +138,8 @@ library(fastR2)
 loglikelihood <- function(psi){
   n <- 170
   t <- 8
-  return(log(choose(n, t)) + t * log((1 - psi) / (2 - psi)) + (n - t) * log(1 - (1 - psi) / (2 - psi)))
+  return(log(choose(n, t)) + t * log((1 - psi) / (2 - psi)) + (n - t) * 
+           log(1 - (1 - psi) / (2 - psi)))
 }
 ml.psi <- maxLik2(loglik = loglikelihood, start=0.3)
 plot(ml.psi) + labs(title = "Taylor Approximation Plot")
