@@ -96,7 +96,7 @@ From there, we would need to do the second derivative test to make sure our valu
 
 $$\frac{d^2}{d\psi^2} \ell^* (\psi) = \frac{n-t}{(2-\psi)^2} + \frac{t(2\psi - 3)}{((1-\psi)(2-\psi))^2}$$
 
-A large sample MLE is approximately normally distrubuted:
+A large sample MLE is approximately normally distributed:
 
 \begin{align*}
     \hat\psi_0^{MLE} &\approx Norm(\psi_0, \sqrt{\frac{1}{n I(\psi_0)}}) \\
